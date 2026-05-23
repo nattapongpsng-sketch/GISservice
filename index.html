@@ -167,18 +167,44 @@ function hideLoading(){
 }
 
 function resetAll(){
-  [lineLayer, cbLayer, swLayer, trackLayer, selectedMarker].forEach(l=>{
-    if(l) map.removeLayer(l);
+
+  [
+    lineLayer,
+    cbLayer,
+    swLayer,
+    rcLayer,
+    trackLayer,
+    selectedMarker
+  ].forEach(layer => {
+    if(layer){
+      map.removeLayer(layer);
+    }
   });
 
-  lineLayer = cbLayer = swLayer = trackLayer = selectedMarker = null;
-  lineGeojson = cbGeojson = swGeojson = null;
+  lineLayer = null;
+  cbLayer = null;
+  swLayer = null;
+  rcLayer = null;
+  trackLayer = null;
+  selectedMarker = null;
+
+  lineGeojson = null;
+  cbGeojson = null;
+  swGeojson = null;
+  rcGeojson = null;
+
   selectedDevice = null;
 
-  graph = { nodes:new Map(), adj:new Map(), edges:[] };
+  graph = {
+    nodes: new Map(),
+    adj: new Map(),
+    edges: []
+  };
 
   document.getElementById('resultBox').textContent = '-';
-  setStatus('Reset แล้ว');
+
+  setStatus('Reset ทั้งหมดแล้ว');
+
 }
 
 function clearTrack(){
