@@ -500,35 +500,26 @@ function trackSelectedDevice(){
     const startNode = nearestEdgeEndNode(startSnap.edge, selectedDevice.latlng);
 
     const feeder = getFeatureFeeder(startSnap.edge.feature);
-    const cbCandidates = findCbCandidates(feeder);
+    const cb = findNearestCbToSelected(feeder);
 
-    if(cbCandidates.length === 0){
-      throw new Error('ไม่พบ CB candidate');
-    }
+if(!cb){
+  throw new Error('ไม่พบ CB ใน Feeder นี้');
+}
 
-    let best = null;
+const cbNode = nearestEdgeEndNode(cb.snap.edge, cb.latlng);
 
-    cbCandidates.forEach(cb=>{
-      const cbSnap = findNearestEdgeToLatLng(cb.latlng);
+const path = dijkstra(startNode, cbNode);
 
-      if(!cbSnap) return;
+if(!path){
+  throw new Error('หาเส้นทางไป CB ไม่สำเร็จ');
+}
 
-      const cbNode = nearestEdgeEndNode(cbSnap.edge, cb.latlng);
-      const path = dijkstra(startNode, cbNode);
-
-      if(path && (!best || path.distanceM < best.path.distanceM)){
-        best = {
-          cb,
-          cbSnap,
-          cbNode,
-          path
-        };
-      }
-    });
-
-    if(!best){
-      throw new Error('หาเส้นทางไป CB ไม่สำเร็จ');
-    }
+const best = {
+  cb,
+  cbSnap: cb.snap,
+  cbNode,
+  path
+};
 
     drawTrack(best.path.edges);
 
@@ -822,6 +813,42 @@ function pointToSegmentDistanceMeters(p,a,b){
   const cy = ay + t*dy;
 
   return Math.hypot(px-cx,py-cy);
+}
+
+function findNearestCbToSelected(feeder){
+
+  let best = null;
+
+  cbGeojson.features.forEach(f => {
+
+    const ll = featurePointLatLng(f);
+    if(!ll) return;
+
+    const p = f.properties || {};
+    const fid = String(p.FEEDERID || '').toUpperCase();
+
+    if(feeder && !fid.startsWith(feeder.toUpperCase())) return;
+
+    const dToDevice = selectedDevice.latlng.distanceTo(ll);
+    const snap = findNearestEdgeToLatLng(ll);
+
+    if(!snap) return;
+
+    const item = {
+      feature: f,
+      latlng: ll,
+      distanceToDevice: dToDevice,
+      snap
+    };
+
+    if(!best || dToDevice < best.distanceToDevice){
+      best = item;
+    }
+
+  });
+
+  return best;
+
 }
 
 </script>
