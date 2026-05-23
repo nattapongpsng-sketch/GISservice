@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>PEA ArcGIS REST Test</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      font-family:Tahoma,sans-serif;
+      background:#f5f3ff;
+      color:#111827;
+    }
+
+    header{
+      background:linear-gradient(135deg,#5b21b6,#7c3aed);
+      color:white;
+      padding:16px;
+      box-shadow:0 2px 8px rgba(0,0,0,.15);
+    }
+
+    header h2{
+      margin:0;
+      font-size:22px;
+    }
+
+    header .sub{
+      margin-top:4px;
+      opacity:.9;
+      font-size:14px;
+    }
+
+    .container{
+      padding:16px;
+    }
+
+    .card{
+      background:white;
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:16px;
+      box-shadow:0 4px 14px rgba(0,0,0,.08);
+    }
+
+    .title{
+      font-weight:bold;
+      margin-bottom:12px;
+      font-size:18px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .row > div{
+      flex:1;
+      min-width:240px;
+    }
+
+    label{
+      display:block;
+      margin-bottom:6px;
+      font-size:13px;
+      color:#555;
+    }
+
+    input,select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid #ddd;
+      font-size:14px;
+    }
+
+    button{
+      padding:12px 16px;
+      border:none;
+      border-radius:12px;
+      background:#6d28d9;
+      color:white;
+      font-weight:bold;
+      cursor:pointer;
+      transition:.2s;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+      background:#5b21b6;
+    }
+
+    button:disabled{
+      opacity:.6;
+      cursor:not-allowed;
+    }
+
+    #map{
+      width:100%;
+      height:75vh;
+      border-radius:16px;
+      overflow:hidden;
+    }
+
+    .status{
+      padding:12px;
+      border-radius:12px;
+      background:#ede9fe;
+      color:#4c1d95;
+      font-size:14px;
+    }
+
+    pre{
+      background:#111827;
+      color:#d1fae5;
+      border-radius:14px;
+      padding:12px;
+      overflow:auto;
+      max-height:320px;
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .loading{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:99999;
+    }
+
+    .loading-box{
+      background:white;
+      padding:24px;
+      border-radius:18px;
+      text-align:center;
+      min-width:220px;
+    }
+
+    .spinner{
+      width:50px;
+      height:50px;
+      border:5px solid #ddd;
+      border-top-color:#7c3aed;
+      border-radius:50%;
+      margin:auto;
+      animation:spin 1s linear infinite;
+    }
+
+    @keyframes spin{
+      to{
+        transform:rotate(360deg);
+      }
+    }
+
+    .hint{
+      font-size:12px;
+      color:#666;
+      margin-top:4px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h2>PEA ArcGIS REST Test</h2>
+  <div class="sub">
+    ทดสอบโหลดข้อมูลสายไฟฟ้าจาก ArcGIS REST Service
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+
+    <div class="title">
+      ตั้งค่า Query
+    </div>
+
+    <div class="row">
+
+      <div>
+        <label>ArcGIS Layer URL</label>
+
+        <input
+          id="layerUrl"
+          value="https://giss2.pea.co.th/arcgis/rest/services/PEA_FOR_EXPORT/MapServer/19"
+        />
+
+        <div class="hint">
+          ไม่ต้องใส่ /query
+        </div>
+      </div>
+
+    </div>
+
+    <br>
+
+    <div class="row">
+
+      <div>
+        <label>WHERE</label>
+
+        <input
+          id="whereText"
+          value="FEEDERID LIKE 'QSA%'"
+        />
+      </div>
+
+      <div>
+        <label>FORMAT</label>
+
+        <select id="formatSelect">
+          <option value="geojson">geojson</option>
+          <option value="pjson">pjson</option>
+        </select>
+      </div>
+
+    </div>
+
+    <br>
+
+    <div class="row">
+
+      <div>
+        <label>OUT FIELDS</label>
+
+        <input
+          id="outFields"
+          value="TAG,FEEDERID,OP_VOLT,CONDUCTORTYPE,CONDUCTORSIZE,IMPEDANCE,MAINORLATERAL,MEASURELENGTH"
+        />
+      </div>
+
+    </div>
+
+    <br>
+
+    <div class="row">
+
+      <button onclick="loadArcgisData()">
+        โหลดข้อมูล
+      </button>
+
+      <button onclick="clearMap()">
+        ล้างข้อมูล
+      </button>
+
+    </div>
+
+  </div>
+
+  <div class="card">
+    <div class="status" id="statusBox">
+      พร้อมใช้งาน
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="map"></div>
+  </div>
+
+  <div class="card">
+
+    <div class="title">
+      ตัวอย่างผลลัพธ์ JSON
+    </div>
+
+    <pre id="jsonBox">-</pre>
+
+  </div>
+
+</div>
+
+<div class="loading" id="loadingOverlay">
+  <div class="loading-box">
+
+    <div class="spinner"></div>
+
+    <div style="margin-top:14px;font-weight:bold;">
+      กำลังโหลดข้อมูล...
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+let map;
+let geoLayer;
+
+initMap();
+
+function initMap(){
+
+  map = L.map('map').setView([8.57,99.25],11);
+
+  L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+      maxZoom:22,
+      attribution:'&copy; OpenStreetMap'
+    }
+  ).addTo(map);
+
+}
+
+function setStatus(text){
+
+  document.getElementById('statusBox').innerHTML = text;
+
+}
+
+function showLoading(){
+
+  document.getElementById('loadingOverlay').style.display='flex';
+
+}
+
+function hideLoading(){
+
+  document.getElementById('loadingOverlay').style.display='none';
+
+}
+
+function clearMap(){
+
+  if(geoLayer){
+    map.removeLayer(geoLayer);
+    geoLayer=null;
+  }
+
+  document.getElementById('jsonBox').textContent='-';
+
+  setStatus('ล้างข้อมูลเรียบร้อย');
+
+}
+
+async function loadArcgisData(){
+
+  showLoading();
+
+  try{
+
+    clearMap();
+
+    const baseUrl =
+      document.getElementById('layerUrl').value.trim();
+
+    const whereText =
+      document.getElementById('whereText').value.trim();
+
+    const outFields =
+      document.getElementById('outFields').value.trim();
+
+    const format =
+      document.getElementById('formatSelect').value;
+
+    const queryUrl =
+      baseUrl +
+      '/query?' +
+      new URLSearchParams({
+
+        where: whereText || '1=1',
+
+        outFields: outFields || '*',
+
+        returnGeometry: true,
+
+        outSR: 4326,
+
+        f: format
+
+      });
+
+    console.log(queryUrl);
+
+    setStatus('กำลังเรียก ArcGIS REST Service...');
+
+    const response = await fetch(queryUrl);
+
+    if(!response.ok){
+
+      throw new Error(
+        'HTTP ' +
+        response.status +
+        ' ' +
+        response.statusText
+      );
+
+    }
+
+    const data = await response.json();
+
+    console.log(data);
+
+    document.getElementById('jsonBox').textContent =
+      JSON.stringify(data,null,2).slice(0,10000);
+
+    if(format==='geojson'){
+
+      drawGeojson(data);
+
+    }else{
+
+      setStatus(
+        'โหลดข้อมูลแบบ PJSON สำเร็จ'
+      );
+
+    }
+
+  }catch(err){
+
+    console.error(err);
+
+    setStatus(
+      'เกิดข้อผิดพลาด: ' + err.message
+    );
+
+    alert(
+      'โหลดข้อมูลไม่สำเร็จ\n\n' +
+      err.message +
+      '\n\nถ้าเปิดใน GitHub Pages แล้วไม่ขึ้น\nอาจติด CORS ของ ArcGIS Server'
+    );
+
+  }finally{
+
+    hideLoading();
+
+  }
+
+}
+
+function drawGeojson(data){
+
+  if(!data.features){
+
+    setStatus('ไม่พบ features');
+
+    return;
+  }
+
+  geoLayer = L.geoJSON(data,{
+
+    style:function(feature){
+
+      return{
+
+        color:getLineColor(feature.properties),
+
+        weight:3,
+
+        opacity:0.9
+
+      };
+
+    },
+
+    onEachFeature:function(feature,layer){
+
+      const p = feature.properties || {};
+
+      layer.bindPopup(`
+
+        <div style="font-family:Tahoma;font-size:13px;">
+
+          <b style="font-size:14px;">
+            ${p.TAG || '-'}
+          </b>
+
+          <hr>
+
+          <b>FEEDER:</b>
+          ${p.FEEDERID || '-'}
+          <br>
+
+          <b>Voltage:</b>
+          ${p.OP_VOLT || '-'}
+          <br>
+
+          <b>Conductor:</b>
+          ${p.CONDUCTORTYPE || '-'}
+          ${p.CONDUCTORSIZE || ''}
+          <br>
+
+          <b>Impedance:</b>
+          ${p.IMPEDANCE || '-'}
+          <br>
+
+          <b>Main/Lateral:</b>
+          ${p.MAINORLATERAL || '-'}
+          <br>
+
+          <b>Length:</b>
+          ${p.MEASURELENGTH || '-'}
+          m
+
+        </div>
+
+      `);
+
+    }
+
+  }).addTo(map);
+
+  const count = data.features.length;
+
+  if(count>0){
+
+    map.fitBounds(
+      geoLayer.getBounds(),
+      {
+        padding:[20,20]
+      }
+    );
+
+  }
+
+  setStatus(
+    'โหลดสำเร็จ จำนวน ' +
+    count +
+    ' features'
+  );
+
+}
+
+function getLineColor(p){
+
+  const type =
+    String(
+      p.CONDUCTORTYPE || ''
+    ).toUpperCase();
+
+  if(type.includes('PIC')){
+    return '#7c3aed';
+  }
+
+  if(type.includes('ACSR')){
+    return '#dc2626';
+  }
+
+  if(type.includes('AAC')){
+    return '#16a34a';
+  }
+
+  if(type.includes('SAC')){
+    return '#2563eb';
+  }
+
+  return '#111827';
+
+}
+
+</script>
+
+</body>
+</html>
