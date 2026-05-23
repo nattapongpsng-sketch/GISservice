@@ -201,18 +201,43 @@ async function loadAll(){
   try{
     resetAll();
 
-    const feeder = document.getElementById('feederPrefix').value.trim().toUpperCase();
-    const whereLine = `FEEDERID LIKE '${feeder}%'`;
-    const whereDevice = `1=1`;
+    const feeder = document
+      .getElementById('feederPrefix')
+      .value
+      .trim()
+      .toUpperCase();
+
+    const whereLine =
+      `FEEDERID LIKE '${feeder}%'`;
+
+    // ใช้หลาย field เผื่อชื่อ field ของ CB/DF ไม่เหมือนกัน
+    const whereDevice =
+      `FEEDERID LIKE '${feeder}%' OR ` +
+      `FEEDER LIKE '${feeder}%' OR ` +
+      `DEVICEID LIKE '${feeder}%' OR ` +
+      `TAG LIKE '${feeder}%' OR ` +
+      `OPERATINGNUMBER LIKE '${feeder}%'`;
 
     setStatus('กำลังโหลดสายไฟ...');
-    lineGeojson = await queryLayerGeojson(LAYER_LINE, whereLine, '*');
+    lineGeojson = await queryLayerGeojson(
+      LAYER_LINE,
+      whereLine,
+      '*'
+    );
 
-    setStatus('กำลังโหลด Circuit Breaker...');
-    cbGeojson = await queryLayerGeojson(LAYER_CB, whereDevice, '*');
+    setStatus('กำลังโหลด Circuit Breaker ตาม Prefix...');
+    cbGeojson = await queryLayerGeojson(
+      LAYER_CB,
+      whereDevice,
+      '*'
+    );
 
-    setStatus('กำลังโหลด Switch/Fuse...');
-    swGeojson = await queryLayerGeojson(LAYER_SWITCH, whereDevice, '*');
+    setStatus('กำลังโหลด Switch/Fuse ตาม Prefix...');
+    swGeojson = await queryLayerGeojson(
+      LAYER_SWITCH,
+      whereDevice,
+      '*'
+    );
 
     drawLines();
     drawCB();
@@ -223,7 +248,8 @@ async function loadAll(){
     fitAll();
 
     setStatus(
-      `โหลดสำเร็จ: สาย ${lineGeojson.features.length} เส้น, ` +
+      `โหลดสำเร็จ Prefix ${feeder}: ` +
+      `สาย ${lineGeojson.features.length} เส้น, ` +
       `CB ${cbGeojson.features.length} จุด, ` +
       `Switch/Fuse ${swGeojson.features.length} จุด`
     );
